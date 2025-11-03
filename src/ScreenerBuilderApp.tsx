@@ -294,7 +294,7 @@ export default function ScreenerBuilderApp() {
               ...builderQs
                 .filter((q) => !(q.section === "Logistics" && !shouldIncludeDeviceChecks()))
                 .flatMap((q, idx) => {
-                  const arr: Paragraph[] = [];
+                  const arr: any[] = [];
                   arr.push(new Paragraph({ children: [new TextRun({ text: `${idx + 1}. ${q.text}` })] }));
                   if (q.type !== TYPE_OPEN && (q.options || []).length) {
                     arr.push(
