@@ -360,9 +360,9 @@ export default function ScreenerBuilderApp() {
       builderQs
         .filter((q) => !(q.section === "Logistics" && !shouldIncludeDeviceChecks()))
         .map((q, i) => {
-          const opts = q.type !== TYPE_OPEN && (q.options or []).length
-            ? `<ul>${(q.options or []).map((o: string) => `<li>${o}</li>`).join("")}</ul>`
-            : "";
+const opts = q.type !== TYPE_OPEN && (q.options || []).length
+  ? `<ul>${(q.options || []).map((o: string) => `<li>${o}</li>`).join("")}</ul>`
+  : "";
           const ri = q.instructions
             ? `<p style="color:#${BRAND_MAGENTA};font-style:italic">${(q.instructions || "").toUpperCase()}</p>`
             : "";
