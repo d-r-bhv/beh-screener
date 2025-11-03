@@ -2,7 +2,7 @@ name: Deploy Vite to GitHub Pages
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 permissions:
   contents: read
@@ -31,9 +31,11 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Upload artifact
+      # Use a UNIQUE artifact name (not the default "github-pages")
+      - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
+          name: site-dist
           path: dist
 
   deploy:
@@ -46,3 +48,5 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: site-dist  # match the unique name above
