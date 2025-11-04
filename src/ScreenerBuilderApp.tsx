@@ -23,11 +23,11 @@ type QType = typeof TYPE_SINGLE | typeof TYPE_MULTI | typeof TYPE_OPEN;
 
 type Q = {
   id: string;
-  section: string; // visible in UI for grouping, but NOT exported as a header
+  section: string; // visible in UI for grouping; not exported as a header
   text: string;
   type: QType;
   options?: string[];
-  instructions?: string; // free text; exported as ALL CAPS, magenta, italic
+  instructions?: string; // ALL CAPS in magenta on export
   tags?: string[];
 };
 
@@ -115,9 +115,6 @@ export function moveItem<T>(arr: T[], from: number, to: number) {
  *  Component
  *  ========================= */
 export default function ScreenerBuilderApp() {
-  const inspectorRef = useRef<HTMLDivElement | null>(null);
-  const questionTextRef = useRef<HTMLTextAreaElement | null>(null);
-
   const [category, setCategory] = useState("Beverages");
   const [mode, setMode] = useState<typeof MODE_ONLINE | typeof MODE_INPERSON>(MODE_ONLINE);
   const [studyTitle, setStudyTitle] = useState("AG### | Project Name");
@@ -129,14 +126,18 @@ export default function ScreenerBuilderApp() {
 
   const [library, setLibrary] = useState<Q[]>(seedLibrary);
   const [builderQs, setBuilderQs] = useState<Q[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  const [docTitle] = useState("Behaviorally Screener – Draft");
   const [lastDownload, setLastDownload] = useState<{
     url: string;
     name: string;
     kind: "docx" | "doc";
   } | null>(null);
+
+  // inline edit state (single question at a time)
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<Q | null>(null);
+  const questionTextRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const [docTitle] = useState("Behaviorally Screener – Draft");
 
   const suggested = useMemo(() => {
     const catKey = category.toLowerCase();
@@ -157,22 +158,16 @@ export default function ScreenerBuilderApp() {
       .slice(0, 12);
   }, [category, specs, library]);
 
-  const selectedQ = builderQs.find((q) => q.id === selectedId) || null;
-
   useEffect(() => {
-    if (selectedQ) {
-      inspectorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      setTimeout(() => {
-        questionTextRef.current?.focus();
-        questionTextRef.current?.select();
-      }, 0);
+    if (editingId && questionTextRef.current) {
+      questionTextRef.current.focus();
+      questionTextRef.current.select();
     }
-  }, [selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [editingId]);
 
   function addToBuild(srcQ: Q) {
     const clone = { ...srcQ, id: rid() };
     setBuilderQs((prev) => [...prev, clone]);
-    setSelectedId(clone.id);
   }
 
   function addCustom() {
@@ -186,46 +181,57 @@ export default function ScreenerBuilderApp() {
       tags: ["custom"],
     };
     setBuilderQs((p) => [...p, q]);
-    setSelectedId(q.id);
   }
 
   function removeFromBuild(id: string) {
     setBuilderQs((p) => p.filter((q) => q.id !== id));
-    if (selectedId === id) setSelectedId(null);
+    if (editingId === id) {
+      setEditingId(null);
+      setDraft(null);
+    }
   }
 
   function move(index: number, dir: number) {
     setBuilderQs((p) => moveItem(p, index, index + dir));
   }
 
-  function updateSelected(field: keyof Q, value: any) {
-    setBuilderQs((p) => p.map((q) => (q.id === selectedId ? ({ ...q, [field]: value } as Q) : q)));
+  // ----- Inline edit handlers -----
+  function startEdit(q: Q) {
+    setEditingId(q.id);
+    setDraft(JSON.parse(JSON.stringify(q))); // deep-ish clone
   }
 
-  function updateOption(optIndex: number, value: string) {
-    setBuilderQs((p) =>
-      p.map((q) =>
-        q.id === selectedId
-          ? { ...q, options: updateOptionInList(q.options || [], optIndex, value) }
-          : q
-      )
-    );
+  function cancelEdit() {
+    setEditingId(null);
+    setDraft(null);
   }
 
-  function addOption() {
-    setBuilderQs((p) =>
-      p.map((q) => (q.id === selectedId ? { ...q, options: addOptionToList(q.options || []) } : q))
-    );
+  function saveEdit() {
+    if (!editingId || !draft) return;
+    setBuilderQs((p) => p.map((q) => (q.id === editingId ? { ...q, ...draft } : q)));
+    setEditingId(null);
+    setDraft(null);
   }
 
-  function removeOption(optIndex: number) {
-    setBuilderQs((p) =>
-      p.map((q) =>
-        q.id === selectedId
-          ? { ...q, options: removeOptionFromList(q.options || [], optIndex) }
-          : q
-      )
-    );
+  function updateDraft<K extends keyof Q>(key: K, value: Q[K]) {
+    if (!draft) return;
+    setDraft({ ...draft, [key]: value });
+  }
+
+  function updateDraftOption(idx: number, value: string) {
+    if (!draft) return;
+    const next = updateOptionInList(draft.options || [], idx, value);
+    setDraft({ ...draft, options: next });
+  }
+  function addDraftOption() {
+    if (!draft) return;
+    const next = addOptionToList(draft.options || []);
+    setDraft({ ...draft, options: next });
+  }
+  function removeDraftOption(idx: number) {
+    if (!draft) return;
+    const next = removeOptionFromList(draft.options || [], idx);
+    setDraft({ ...draft, options: next });
   }
 
   function loadBehaviorallyStandard() {
@@ -451,7 +457,6 @@ export default function ScreenerBuilderApp() {
       },
     ];
     setBuilderQs(standard);
-    setSelectedId(standard[0].id);
   }
 
   function shouldIncludeDeviceChecks() {
@@ -531,10 +536,8 @@ export default function ScreenerBuilderApp() {
    *  Export to Word (.docx) with docx
    *  ========================= */
   async function exportToWord() {
-    // Lazy-load docx to avoid heavy bundle during normal editing
     const { Document, Packer, Paragraph, HeadingLevel, TextRun, ImageRun } = await import("docx");
 
-    // Header with brand logo (try/catch so failure doesn't block export)
     const headerChildren: any[] = [];
     try {
       headerChildren.push(
@@ -574,7 +577,6 @@ export default function ScreenerBuilderApp() {
               run: { size: BODY_FONT_SIZE, font: "Calibri" },
             },
           ],
-          // NOTE: No `default: { paragraph: ... }` — typings reject it
         },
         sections: [
           {
@@ -653,7 +655,6 @@ export default function ScreenerBuilderApp() {
         ],
       });
 
-      // Create blob
       let blob: Blob | null = null;
       try {
         if ((Packer as any).toBlob) {
@@ -674,7 +675,6 @@ export default function ScreenerBuilderApp() {
         return;
       }
 
-      // Fallback
       exportAsHtmlDoc();
     } catch (err) {
       console.error("Export failed, using HTML fallback", err);
@@ -910,8 +910,8 @@ export default function ScreenerBuilderApp() {
           </div>
         </section>
 
-        {/* Middle: Builder */}
-        <section className="col-span-6">
+        {/* Middle: Builder (inline edit per question) */}
+        <section className="col-span-9">
           <div className="bg-white rounded-2xl shadow p-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold">Screener Builder</h2>
@@ -929,88 +929,198 @@ export default function ScreenerBuilderApp() {
               </div>
             ) : (
               <ul className="mt-4 space-y-2">
-                {builderQs.map((q, i) => (
-                  <li
-                    key={q.id}
-                    className={`border rounded p-3 ${
-                      selectedId === q.id ? "ring-2 ring-blue-400" : ""
-                    }`}
-                  >
-                    <div
-                      className="flex items-start gap-3 cursor-pointer"
-                      onClick={() => setSelectedId(q.id)}
+                {builderQs.map((q, i) => {
+                  const isEditing = editingId === q.id;
+                  return (
+                    <li
+                      key={q.id}
+                      className={`border rounded p-3 ${isEditing ? "ring-2 ring-blue-400" : ""}`}
                     >
-                      <div className="text-slate-500 w-6 pt-1">{i + 1}.</div>
-                      <div className="flex-1">
-                        {/* Section stays visible in UI for organization */}
-                        <div className="text-xs uppercase tracking-wide text-slate-500">
-                          {q.section}
-                        </div>
-                        <div className="font-medium">{q.text}</div>
-                        <div className="text-xs text-slate-500 mt-1">Type: {q.type}</div>
+                      <div className="flex items-start gap-3">
+                        <div className="text-slate-500 w-6 pt-1">{i + 1}.</div>
+                        <div className="flex-1">
+                          {!isEditing ? (
+                            <>
+                              <div className="text-xs uppercase tracking-wide text-slate-500">
+                                {q.section}
+                              </div>
+                              <div className="font-medium">{q.text}</div>
+                              <div className="text-xs text-slate-500 mt-1">Type: {q.type}</div>
 
-                        {q.type !== TYPE_OPEN && (q.options?.length ?? 0) > 0 && (
-                          <ul className="list-disc ml-6 text-sm mt-1">
-                            {(q.options || []).map((o: string, idx: number) => (
-                              <li key={idx}>{o}</li>
-                            ))}
-                          </ul>
-                        )}
+                              {q.type !== TYPE_OPEN && (q.options?.length ?? 0) > 0 && (
+                                <ul className="list-disc ml-6 text-sm mt-1">
+                                  {(q.options || []).map((o: string, idx: number) => (
+                                    <li key={idx}>{o}</li>
+                                  ))}
+                                </ul>
+                              )}
 
-                        {q.instructions && (
-                          <div className="text-sm mt-2">
-                            <span className="text-[#C000A3] italic font-medium">
-                              {(q.instructions || "").toUpperCase()}
-                            </span>
-                          </div>
-                        )}
+                              {q.instructions && (
+                                <div className="text-sm mt-2">
+                                  <span className="text-[#C000A3] italic font-medium">
+                                    {(q.instructions || "").toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
 
-                        {q.tags?.length ? (
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {q.tags.map((t: string, idx: number) => (
-                              <span
-                                key={idx}
-                                className="px-2 py-0.5 text-xs rounded-full bg-slate-100 border"
+                              {q.tags?.length ? (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {q.tags.map((t: string, idx: number) => (
+                                    <span
+                                      key={idx}
+                                      className="px-2 py-0.5 text-xs rounded-full bg-slate-100 border"
+                                    >
+                                      {t}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </>
+                          ) : (
+                            // Editing UI
+                            <>
+                              <label className="block text-xs uppercase text-slate-500">
+                                Section
+                              </label>
+                              <input
+                                className="w-full border rounded px-2 py-1"
+                                value={draft?.section || ""}
+                                onChange={(e) => updateDraft("section", e.target.value)}
+                              />
+
+                              <label className="block text-xs uppercase text-slate-500 mt-2">
+                                Question Text
+                              </label>
+                              <textarea
+                                className="w-full border rounded px-2 py-1 h-24"
+                                value={draft?.text || ""}
+                                onChange={(e) => updateDraft("text", e.target.value)}
+                                ref={questionTextRef}
+                              />
+
+                              <label className="block text-xs uppercase text-slate-500 mt-2">
+                                Type
+                              </label>
+                              <select
+                                className="w-full border rounded px-2 py-1"
+                                value={draft?.type || TYPE_SINGLE}
+                                onChange={(e) => updateDraft("type", e.target.value as QType)}
                               >
-                                {t}
-                              </span>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
+                                <option value={TYPE_SINGLE}>Single-select</option>
+                                <option value={TYPE_MULTI}>Multi-select</option>
+                                <option value={TYPE_OPEN}>Open-ended</option>
+                              </select>
 
-                      <div className="flex flex-col gap-1">
-                        <button
-                          className="text-xs px-2 py-1 rounded bg-white border"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedId(q.id);
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="text-xs px-2 py-1 rounded bg-white border"
-                          onClick={() => move(i, -1)}
-                        >
-                          ▲
-                        </button>
-                        <button
-                          className="text-xs px-2 py-1 rounded bg-white border"
-                          onClick={() => move(i, +1)}
-                        >
-                          ▼
-                        </button>
-                        <button
-                          className="text-xs px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200"
-                          onClick={() => removeFromBuild(q.id)}
-                        >
-                          Remove
-                        </button>
+                              {draft?.type !== TYPE_OPEN && (
+                                <div className="border rounded p-2 mt-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-sm font-medium">Options</div>
+                                    <button
+                                      className="text-xs px-2 py-1 rounded bg-slate-900 text-white"
+                                      onClick={addDraftOption}
+                                    >
+                                      Add
+                                    </button>
+                                  </div>
+                                  <div className="space-y-1 mt-2">
+                                    {(draft?.options || []).map((o: string, idx: number) => (
+                                      <div key={idx} className="flex items-center gap-2">
+                                        <input
+                                          className="flex-1 border rounded px-2 py-1"
+                                          value={o}
+                                          onChange={(e) => updateDraftOption(idx, e.target.value)}
+                                        />
+                                        <button
+                                          className="text-xs px-2 py-1 rounded bg-white border"
+                                          onClick={() => removeDraftOption(idx)}
+                                        >
+                                          Remove
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              <label className="block text-xs uppercase text-slate-500 mt-2">
+                                Recruiter Instructions
+                              </label>
+                              <textarea
+                                className="w-full border rounded px-2 py-1 h-24"
+                                value={draft?.instructions || ""}
+                                onChange={(e) => updateDraft("instructions", e.target.value)}
+                              />
+
+                              <label className="block text-xs uppercase text-slate-500 mt-2">
+                                Tags (; separated)
+                              </label>
+                              <input
+                                className="w-full border rounded px-2 py-1"
+                                value={(draft?.tags || []).join("; ")}
+                                onChange={(e) =>
+                                  updateDraft(
+                                    "tags",
+                                    e.target.value.split(/;\s*/).filter(Boolean)
+                                  )
+                                }
+                              />
+                            </>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          {!isEditing ? (
+                            <>
+                              <button
+                                className="text-xs px-2 py-1 rounded bg-white border"
+                                onClick={() => startEdit(q)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="text-xs px-2 py-1 rounded bg-white border"
+                                onClick={() => move(i, -1)}
+                                disabled={i === 0}
+                                title={i === 0 ? "Already at top" : "Move up"}
+                              >
+                                ▲
+                              </button>
+                              <button
+                                className="text-xs px-2 py-1 rounded bg-white border"
+                                onClick={() => move(i, +1)}
+                                disabled={i === builderQs.length - 1}
+                                title={i === builderQs.length - 1 ? "Already at bottom" : "Move down"}
+                              >
+                                ▼
+                              </button>
+                              <button
+                                className="text-xs px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200"
+                                onClick={() => removeFromBuild(q.id)}
+                              >
+                                Remove
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                className="text-xs px-2 py-1 rounded bg-emerald-600 text-white"
+                                onClick={saveEdit}
+                              >
+                                Save
+                              </button>
+                              <button
+                                className="text-xs px-2 py-1 rounded bg-white border"
+                                onClick={cancelEdit}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
@@ -1036,116 +1146,6 @@ export default function ScreenerBuilderApp() {
             </div>
           </div>
         </section>
-
-        {/* Right: Inspector */}
-        <aside className="col-span-3">
-          <div className="bg-white rounded-2xl shadow p-4" ref={inspectorRef}>
-            <h2 className="font-semibold">Inspector</h2>
-
-            {!selectedQ ? (
-              <div className="text-sm text-slate-500 mt-2">
-                Select a question from the builder to edit.
-              </div>
-            ) : (
-              <div className="space-y-2 mt-2">
-                <label className="block text-xs uppercase text-slate-500">Section</label>
-                <input
-                  className="w-full border rounded px-2 py-1"
-                  value={selectedQ.section || ""}
-                  onChange={(e) => updateSelected("section", e.target.value)}
-                />
-
-                <label className="block text-xs uppercase text-slate-500">Question Text</label>
-                <textarea
-                  className="w-full border rounded px-2 py-1 h-24"
-                  value={selectedQ.text || ""}
-                  onChange={(e) => updateSelected("text", e.target.value)}
-                  ref={questionTextRef}
-                />
-
-                <label className="block text-xs uppercase text-slate-500">Type</label>
-                <select
-                  className="w-full border rounded px-2 py-1"
-                  value={selectedQ.type || TYPE_SINGLE}
-                  onChange={(e) => updateSelected("type", e.target.value as QType)}
-                >
-                  <option value={TYPE_SINGLE}>Single-select</option>
-                  <option value={TYPE_MULTI}>Multi-select</option>
-                  <option value={TYPE_OPEN}>Open-ended</option>
-                </select>
-
-                {selectedQ.type !== TYPE_OPEN && (
-                  <div className="border rounded p-2">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium">Options</div>
-                      <button
-                        className="text-xs px-2 py-1 rounded bg-slate-900 text-white"
-                        onClick={addOption}
-                      >
-                        Add
-                      </button>
-                    </div>
-                    <div className="space-y-1 mt-2">
-                      {(selectedQ.options || []).map((o: string, i: number) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <input
-                            className="flex-1 border rounded px-2 py-1"
-                            value={o}
-                            onChange={(e) => updateOption(i, e.target.value)}
-                          />
-                          <button
-                            className="text-xs px-2 py-1 rounded bg-white border"
-                            onClick={() => removeOption(i)}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <label className="block text-xs uppercase text-slate-500">
-                  Recruiter Instructions
-                </label>
-                <textarea
-                  className="w-full border rounded px-2 py-1 h-24"
-                  value={selectedQ.instructions || ""}
-                  onChange={(e) => updateSelected("instructions", e.target.value)}
-                />
-
-                <label className="block text-xs uppercase text-slate-500">
-                  Tags (; separated)
-                </label>
-                <input
-                  className="w-full border rounded px-2 py-1"
-                  value={(selectedQ.tags || []).join("; ")}
-                  onChange={(e) =>
-                    updateSelected(
-                      "tags",
-                      e.target.value.split(/;\s*/).filter(Boolean)
-                    )
-                  }
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-2xl shadow p-4 mt-4">
-            <h2 className="font-semibold">Tips</h2>
-            <ul className="list-disc ml-5 text-sm space-y-1 text-slate-600">
-              <li>
-                Click <strong>Load Behaviorally Standard Order</strong> to start from your house
-                style.
-              </li>
-              <li>
-                Mode toggles device checks: Online includes them, In-person omits them in export.
-              </li>
-              <li>Import past questions via CSV to grow your library.</li>
-              <li>Export to Word for client-ready deliverables.</li>
-            </ul>
-          </div>
-        </aside>
       </main>
 
       <footer className="mx-auto max-w-7xl px-4 pb-10 pt-2 text-xs text-slate-500">
