@@ -1,7 +1,18 @@
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
-import { saveAs } from "file-saver";
 import { Question, StudySetup } from "./types";
 import { substituteTokens } from "./utils/text";
+
+// ---- Simple, dependency-free download helper ----
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 
 // Brand styling
 const MAGENTA = "C0007A";
@@ -9,7 +20,10 @@ const FONT = "Calibri";
 const NORMAL_SIZE = 22; // 11pt
 const SMALL_SIZE = 20;  // 10pt
 
-function p(text: string, opts?: { bold?: boolean; italics?: boolean; magenta?: boolean; size?: number }) {
+function p(
+  text: string,
+  opts?: { bold?: boolean; italics?: boolean; magenta?: boolean; size?: number }
+) {
   const run = new TextRun({
     text,
     bold: opts?.bold,
@@ -47,12 +61,11 @@ export async function exportToWord(opts: {
       {
         properties: {},
         children: [
-          // Header (simple text header — you can keep your existing logo/header if you already had it)
           heading("Behaviorally Screener"),
           p(`Mode: ${modeLabel(setup.mode)}  |  Moderator: ${setup.moderator || "—"}`),
           p(`Dates: ${setup.dates || "—"}  |  Location/Platform: ${setup.locationOrPlatform || "—"}`),
           p(`Category: ${setup.categoryName || "—"}`, { bold: true }),
-          p(setup.notes ? `Notes: ${setup.notes}` : "", {}),
+          setup.notes ? p(`Notes: ${setup.notes}`) : p(""),
 
           heading("Screener"),
           ...questions.flatMap((q, idx) => renderQuestion(idx + 1, q, tokens)),
@@ -62,7 +75,7 @@ export async function exportToWord(opts: {
   });
 
   const blob = await Packer.toBlob(doc);
-  saveAs(blob, filename);
+  downloadBlob(blob, filename);
 }
 
 function renderQuestion(n: number, q: Question, tokens: Record<string, string>) {
