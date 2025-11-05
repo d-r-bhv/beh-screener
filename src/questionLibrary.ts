@@ -1,12 +1,13 @@
 import { Mode, Question } from "./types";
 
-// Shared constants for recruiter instruction formatting (magenta, caps handled in export)
-const MAGENTA_INSTR = (s: string) => s; // render style is applied during export
+// Helper (export styling applied in exporter)
+const MAGENTA_INSTR = (s: string) => s;
 
-// ----- Universal Standard Questions (always loaded; some may be info-only) -----
+// ----- Universal Standard Questions -----
 export const universalStandardQuestions: Question[] = [
   {
     id: "intro_read",
+    idLabel: "S_Intro",
     section: "Introduction",
     text:
       "Hello, my name is ___________ from ____________, a market research firm. We are conducting a survey today on various products. This is not an attempt to sell you anything. We are interested in your opinions. Would you spare a few minutes to answer some questions? All your answers will be kept confidential.",
@@ -17,6 +18,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "gender",
+    idLabel: "S_Gender",
     section: "Demographics",
     text: "Record gender.",
     type: "single",
@@ -34,6 +36,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "research_participation",
+    idLabel: "S_PastPar",
     section: "Disqualification",
     text: "Have you ever participated in a market research discussion group or individual interview?",
     type: "single",
@@ -46,6 +49,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "industry_exclusions",
+    idLabel: "S_IndustryExcl",
     section: "Disqualification",
     text:
       "Do you or does anyone in your family currently work for or have ever worked for any of the following? (READ LIST)",
@@ -66,6 +70,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "age",
+    idLabel: "S_Age",
     section: "Demographics",
     text: "What is your age? RECORD BELOW.",
     type: "open",
@@ -74,6 +79,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "hh_shopping_role",
+    idLabel: "S_HHGrocery",
     section: "Household",
     text: "How much of the household’s grocery shopping do you, yourself, do?",
     type: "single",
@@ -84,6 +90,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "brand_decider",
+    idLabel: "S_BrandDecider",
     section: "Household",
     text: "Which is most accurate about who decides what brands of {{categoryName}} to buy in your household?",
     type: "single",
@@ -93,6 +100,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "category_usage",
+    idLabel: "S_CategoryUsage",
     section: "Category",
     text:
       "Which, if any, of the following types of {{categoryName}} have you purchased and personally used in the past [timeframe]? (READ LIST.)",
@@ -103,6 +111,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "brand_grid",
+    idLabel: "S_BrandGrid",
     section: "Brands",
     text:
       "Thinking about {{categoryName}} brands: Which are you AWARE of? Which have you PURCHASED in the past [timeframe]? Which ONE do you purchase MOST OFTEN? Which would you NOT CONSIDER in the future?",
@@ -112,6 +121,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "articulation",
+    idLabel: "S_Articulation",
     section: "Articulation",
     text:
       "Imagine it is the year 2050. What would grocery stores be like? How would they be different from the ones you see today? How might shopping be any different?",
@@ -123,6 +133,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "marital_status",
+    idLabel: "S_Marital",
     section: "Demographics",
     text: "What is your current marital status?",
     type: "single",
@@ -131,6 +142,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "children_hh",
+    idLabel: "S_KidsInHH",
     section: "Household",
     text: "Do you have any children under the age of 18 currently living in your household?",
     type: "single",
@@ -139,6 +151,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "ethnicity",
+    idLabel: "S_Ethnicity",
     section: "Demographics",
     text: "Which of the following best describes your ethnicity?",
     type: "single",
@@ -154,6 +167,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "education",
+    idLabel: "S_Education",
     section: "Demographics",
     text: "What is the last level of education that you completed?",
     type: "single",
@@ -169,6 +183,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "employment_status",
+    idLabel: "S_Employment",
     section: "Demographics",
     text: "What is your current employment status?",
     type: "multi",
@@ -185,6 +200,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "occupation_checks",
+    idLabel: "S_OccupationChecks",
     section: "Demographics",
     text:
       "ASK IF EMPLOYED: What is your occupation? In what kind of business? ASK IF MARRIED: Spouse’s occupation/business? ASK ALL: Previous occupation/business?",
@@ -196,6 +212,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "income",
+    idLabel: "S_Income",
     section: "Demographics",
     text: "What is your total annual household income?",
     type: "single",
@@ -212,6 +229,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "vision_colorblind",
+    idLabel: "S_VisionColor",
     section: "Logistics",
     text:
       "During the discussion you will be asked to visually evaluate some concepts. Are you colorblind or do you have any eyesight or reading problems that would prevent you from being able to do this?",
@@ -222,6 +240,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "invitation",
+    idLabel: "S_Invitation",
     section: "Invitation",
     text:
       "IF QUALIFIED: You are eligible to participate in a market research discussion on consumer products. This is not an attempt to sell you anything. The discussion will last about [X] minutes and for your time you will receive $______. May we count on your attendance?",
@@ -231,6 +250,7 @@ export const universalStandardQuestions: Question[] = [
   },
   {
     id: "rcda",
+    idLabel: "S_RCDA",
     section: "Consent",
     text:
       "Respondent Confidentiality Disclosure Agreement (RCDA) — confidentiality, photo/video release, IP, data privacy, limitation of liability.",
@@ -241,11 +261,10 @@ export const universalStandardQuestions: Question[] = [
 ];
 
 // ----- Conditional Blocks -----
-
-// ShopperLab MET (mobile eye-tracking) block
 export const shopperLabMETBlock: Question[] = [
   {
     id: "met_ok",
+    idLabel: "S_MET_OK",
     section: "ShopperLab / MET",
     text:
       "During the interview you will be asked to wear a set of non-prescription eyeglasses (mobile eye-tracking). Is this OK?",
@@ -257,6 +276,7 @@ export const shopperLabMETBlock: Question[] = [
   },
   {
     id: "met_vision_devices",
+    idLabel: "S_MET_Devices",
     section: "ShopperLab / MET",
     text:
       "Which of the following do you ever wear while shopping in a grocery store? (READ LIST.)",
@@ -274,6 +294,7 @@ export const shopperLabMETBlock: Question[] = [
   },
   {
     id: "met_four_feet",
+    idLabel: "S_MET_4ft",
     section: "ShopperLab / MET",
     text: "Do you have issues seeing objects from 4 feet away?",
     type: "single",
@@ -283,6 +304,7 @@ export const shopperLabMETBlock: Question[] = [
   },
   {
     id: "met_eye_conditions",
+    idLabel: "S_MET_Eyes",
     section: "ShopperLab / MET",
     text:
       "Do you have any eyesight problems (e.g., current/reoccurring eye injuries, colorblindness, pink eye, astigmatism, strabismus, etc.)?",
@@ -293,6 +315,7 @@ export const shopperLabMETBlock: Question[] = [
   },
   {
     id: "met_mobility",
+    idLabel: "S_MET_Mobility",
     section: "ShopperLab / MET",
     text:
       "Do you currently use a wheelchair, motorized scooter, walker, or any other type of walking assistance device while shopping?",
@@ -303,6 +326,7 @@ export const shopperLabMETBlock: Question[] = [
   },
   {
     id: "met_rubber_allergy",
+    idLabel: "S_MET_Rubber",
     section: "ShopperLab / MET",
     text: "Are you allergic to rubber?",
     type: "single",
@@ -312,6 +336,7 @@ export const shopperLabMETBlock: Question[] = [
   },
   {
     id: "met_recruiter_read",
+    idLabel: "S_MET_Read",
     section: "ShopperLab / MET",
     text:
       "RECRUITER READ: Please refrain from eye makeup and colored contacts on the day of research (no tinted/colored contacts, eye shadow, liner, mascara, eyelash extensions).",
@@ -321,10 +346,10 @@ export const shopperLabMETBlock: Question[] = [
   },
 ];
 
-// Online tech-check block
 export const onlineTechCheckBlock: Question[] = [
   {
     id: "tech_devices",
+    idLabel: "S_TechDevices",
     section: "Online / Tech",
     text:
       "Which devices do you own and use regularly? (Smartphone; Tablet; Laptop with webcam and mouse; Desktop with webcam and mouse; Smart Watch)",
@@ -334,6 +359,7 @@ export const onlineTechCheckBlock: Question[] = [
   },
   {
     id: "tech_comfort",
+    idLabel: "S_TechComfort",
     section: "Online / Tech",
     text:
       "Which best describes your comfort using a computer or laptop?",
@@ -348,6 +374,7 @@ export const onlineTechCheckBlock: Question[] = [
   },
   {
     id: "tech_rules",
+    idLabel: "S_TechRules",
     section: "Online / Tech",
     text:
       "RECRUITER READ: You are required to join from your laptop or desktop computer (no phones/tablets). Join 15 minutes early for tech checks. Stay on camera; avoid multitasking.",
@@ -357,10 +384,10 @@ export const onlineTechCheckBlock: Question[] = [
   },
 ];
 
-// External facility – arrival reminder (kept minimal; vision check is already universal)
 export const externalFacilityBlock: Question[] = [
   {
     id: "arrival_reminder",
+    idLabel: "S_FacilityArrival",
     section: "Facility",
     text:
       "As a courtesy to other participants, please arrive 15 minutes early so we can begin on time.",
@@ -375,7 +402,7 @@ export function buildStandardQuestions(mode: Mode): Question[] {
   const base = [...universalStandardQuestions];
 
   if (mode === "inperson_shopperlab") {
-    base.splice(1, 0, ...shopperLabMETBlock); // insert MET early, after intro
+    base.splice(1, 0, ...shopperLabMETBlock);
   } else if (mode === "online") {
     base.splice(1, 0, ...onlineTechCheckBlock);
   } else if (mode === "inperson_external") {
