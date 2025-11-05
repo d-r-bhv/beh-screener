@@ -1,8 +1,9 @@
+// src/exportToWord.ts  (no external download deps)
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { Question, StudySetup } from "./types";
 import { substituteTokens } from "./utils/text";
 
-// ---- Simple, dependency-free download helper ----
+// Dependency-free download helper
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -51,10 +52,7 @@ export async function exportToWord(opts: {
   const { setup, questions } = opts;
   const filename = opts.filename || "Behaviorally_Screener.docx";
 
-  // Tokens used across the document
-  const tokens = {
-    categoryName: setup.categoryName || "",
-  };
+  const tokens = { categoryName: setup.categoryName || "" };
 
   const doc = new Document({
     sections: [
@@ -82,7 +80,7 @@ function renderQuestion(n: number, q: Question, tokens: Record<string, string>) 
   const out: Paragraph[] = [];
   out.push(p(`${n}. ${substituteTokens(q.text, tokens)}`, { bold: true }));
 
-  if (q.options && q.options.length) {
+  if (q.options?.length) {
     q.options.forEach((opt, i) => {
       const label = String.fromCharCode(97 + i) + "."; // a., b., c.
       out.push(p(`   ${label} ${substituteTokens(opt, tokens)}`));
