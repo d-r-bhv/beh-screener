@@ -25,7 +25,6 @@ export default function ScreenerBuilderApp() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [insertIndex, setInsertIndex] = useState<number>(-1);
-
   const questionRefs = useRef<Record<string, HTMLLIElement | null>>({});
 
   const standard = useMemo(() => buildStandardQuestions(setup.mode), [setup.mode]);
@@ -42,6 +41,7 @@ export default function ScreenerBuilderApp() {
   const addCustom = (position: number) => {
     const q: Question = {
       id: `custom_${Date.now()}`,
+      idLabel: `C_${Date.now()}`,
       section: "Custom",
       text: "New question about {{categoryName}}…",
       type: "open",
@@ -49,18 +49,14 @@ export default function ScreenerBuilderApp() {
       instructions: "",
       tags: ["custom"],
     };
-
     setBuild((prev) => {
       const next = [...prev];
       const insertAt = position < 0 ? next.length : Math.min(position, next.length);
       next.splice(insertAt, 0, q);
       return next;
     });
-
-    // Auto-scroll after short delay so DOM updates first
     setTimeout(() => {
-      const qid = q.id;
-      const el = questionRefs.current[qid];
+      const el = questionRefs.current[q.id];
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 300);
   };
@@ -97,13 +93,12 @@ export default function ScreenerBuilderApp() {
     });
   };
 
-  // ---------------- SETUP VIEW -----------------
+  // ---------- SETUP VIEW ----------
   if (view === "setup") {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
         <div className="w-full max-w-3xl bg-white rounded-2xl shadow p-6">
           <h1 className="text-2xl font-bold mb-4">Behaviorally Screener Setup</h1>
-
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium">Mode</label>
@@ -119,7 +114,6 @@ export default function ScreenerBuilderApp() {
                 ))}
               </select>
             </div>
-
             <div>
               <label className="block text-sm font-medium">Moderator</label>
               <input
@@ -128,7 +122,6 @@ export default function ScreenerBuilderApp() {
                 onChange={(e) => setSetup((s) => ({ ...s, moderator: e.target.value }))}
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium">Dates</label>
               <input
@@ -137,7 +130,6 @@ export default function ScreenerBuilderApp() {
                 onChange={(e) => setSetup((s) => ({ ...s, dates: e.target.value }))}
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium">Location / Platform</label>
               <input
@@ -146,7 +138,6 @@ export default function ScreenerBuilderApp() {
                 onChange={(e) => setSetup((s) => ({ ...s, locationOrPlatform: e.target.value }))}
               />
             </div>
-
             <div className="md:col-span-2">
               <label className="block text-sm font-medium">
                 Category name (as it should appear in screener text)
@@ -161,7 +152,6 @@ export default function ScreenerBuilderApp() {
                 This will plug into questions wherever <code>{"{{categoryName}}"}</code> appears.
               </p>
             </div>
-
             <div className="md:col-span-2">
               <label className="block text-sm font-medium">Notes / Specs</label>
               <textarea
@@ -170,7 +160,6 @@ export default function ScreenerBuilderApp() {
                 onChange={(e) => setSetup((s) => ({ ...s, notes: e.target.value }))}
               />
             </div>
-
             <div className="md:col-span-2 flex justify-end">
               <button
                 className="px-5 py-3 rounded bg-black text-white hover:bg-gray-800"
@@ -185,10 +174,10 @@ export default function ScreenerBuilderApp() {
     );
   }
 
-  // ---------------- BUILDER VIEW -----------------
+  // ---------- BUILDER VIEW ----------
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 relative">
-      {/* Floating Leave Button */}
+      {/* Floating Leave button */}
       <button
         onClick={() => setShowConfirm(true)}
         className="fixed bottom-5 left-5 bg-white border border-gray-300 shadow-lg text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-100 z-50"
@@ -196,7 +185,7 @@ export default function ScreenerBuilderApp() {
         ← Leave
       </button>
 
-      {/* Floating Add Question Button */}
+      {/* Floating Add button */}
       <button
         onClick={() => setShowAddModal(true)}
         className="fixed bottom-5 right-5 bg-fuchsia-700 text-white px-4 py-2 rounded-xl shadow-lg hover:bg-fuchsia-800 z-50"
@@ -204,7 +193,7 @@ export default function ScreenerBuilderApp() {
         + Add Custom Question
       </button>
 
-      {/* Leave Confirmation Modal */}
+      {/* Leave confirmation */}
       {showConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-lg p-6 max-w-sm w-full text-center">
@@ -233,7 +222,7 @@ export default function ScreenerBuilderApp() {
         </div>
       )}
 
-      {/* Add Custom Question Modal */}
+      {/* Add custom question modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-lg p-6 max-w-sm w-full text-center">
@@ -284,26 +273,47 @@ export default function ScreenerBuilderApp() {
           Export to Word (.docx)
         </button>
 
-        {/* Builder Cards */}
         <div className="bg-white rounded-2xl shadow p-4">
           <ul className="space-y-4">
             {build.map((q, idx) => (
               <li
                 key={q.id}
                 ref={(el) => (questionRefs.current[q.id] = el)}
-                className="border rounded-xl p-4"
+                className="relative border rounded-xl p-4"
               >
-                <div className="flex items-start justify-between gap-4">
+                {/* Question number label */}
+                <div className="absolute top-2 left-3 text-xs font-medium text-gray-400">
+                  Q{idx + 1}
+                </div>
+
+                <div className="flex items-start justify-between gap-4 mt-3">
                   <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-gray-500 mb-1">{q.section}</div>
-                      <div className="text-sm text-gray-400">Q{idx + 1}</div>
+                    {/* Question code field */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <label className="text-xs font-semibold text-gray-500">Code:</label>
+                      <input
+                        className={`text-xs border rounded p-1 w-32 ${
+                          q.idLabel?.startsWith("C_")
+                            ? "bg-white"
+                            : "bg-gray-100 cursor-not-allowed"
+                        }`}
+                        value={q.idLabel || ""}
+                        onChange={(e) =>
+                          q.idLabel?.startsWith("C_") &&
+                          updateQ(q.id, { idLabel: e.target.value })
+                        }
+                        readOnly={!q.idLabel?.startsWith("C_")}
+                      />
                     </div>
+
+                    <div className="text-sm text-gray-500 mb-1">{q.section}</div>
+
                     <input
                       className="w-full text-base font-semibold border rounded p-2"
                       value={q.text}
                       onChange={(e) => updateQ(q.id, { text: e.target.value })}
                     />
+
                     {/* Options */}
                     {q.options && q.options.length > 0 && (
                       <div className="mt-2">
@@ -322,32 +332,17 @@ export default function ScreenerBuilderApp() {
                         ))}
                       </div>
                     )}
+
                     {/* Instructions */}
                     <div className="mt-2">
-                      <div className="text-sm text-gray-500 mb-1">Recruiter Instructions</div>
+                      <div className="text-sm text-gray-500 mb-1">
+                        Recruiter Instructions
+                      </div>
                       <textarea
                         className="w-full border rounded p-2"
                         value={q.instructions || ""}
                         onChange={(e) => updateQ(q.id, { instructions: e.target.value })}
                       />
-                    </div>
-
-                    {/* Move-to dropdown */}
-                    <div className="mt-3 flex items-center gap-2 text-sm">
-                      <span>Move to:</span>
-                      <select
-                        className="border rounded p-1"
-                        value={idx}
-                        onChange={(e) =>
-                          moveToIndex(q.id, Number(e.target.value))
-                        }
-                      >
-                        {build.map((_, i) => (
-                          <option key={i} value={i}>
-                            Position {i + 1}
-                          </option>
-                        ))}
-                      </select>
                     </div>
 
                     {/* Preview */}
@@ -359,8 +354,8 @@ export default function ScreenerBuilderApp() {
                     </div>
                   </div>
 
-                  {/* Move buttons + remove */}
-                  <div className="flex flex-col gap-2">
+                  {/* Right-hand controls */}
+                  <div className="flex flex-col items-end gap-2">
                     <button
                       className="px-3 py-1 rounded bg-gray-100"
                       onClick={() => move(q.id, -1)}
@@ -373,6 +368,17 @@ export default function ScreenerBuilderApp() {
                     >
                       ▼
                     </button>
+                    <select
+                      className="border rounded p-1 text-sm"
+                      value={idx}
+                      onChange={(e) => moveToIndex(q.id, Number(e.target.value))}
+                    >
+                      {build.map((_, i) => (
+                        <option key={i} value={i}>
+                          Pos {i + 1}
+                        </option>
+                      ))}
+                    </select>
                     <button
                       className="px-3 py-1 rounded bg-red-600 text-white"
                       onClick={() => removeQ(q.id)}
