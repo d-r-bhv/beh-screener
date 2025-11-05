@@ -8,14 +8,15 @@ export interface StudySetup {
   moderator: string;
   dates: string;
   locationOrPlatform: string;
-  categoryName: string; // <-- plug-in term that flows into templates
+  categoryName: string;
   notes?: string;
 }
 
 export type QuestionType = "single" | "multi" | "open";
 
 export interface Question {
-  id: string;
+  id: string;              // internal unique key (for React/state)
+  idLabel?: string;        // human-readable screener code, e.g. S_Gender, C_Custom1
   section: string;
   text: string;
   type: QuestionType;
@@ -23,6 +24,5 @@ export interface Question {
   instructions?: string;
   tags?: string[];
   required?: boolean;
-  // Optional show-if logic driven by setup/specs
   showIf?: (setup: StudySetup) => boolean;
 }
