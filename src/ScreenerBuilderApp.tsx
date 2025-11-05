@@ -1,5 +1,4 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
-import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 
 /** =========================
  *  Brand constants
@@ -97,14 +96,6 @@ export function addOptionToList(options: string[] = [], value = "New option") {
 }
 export function removeOptionFromList(options: string[] = [], index: number) {
   return options.filter((_, i) => i !== index);
-}
-export function moveItem<T>(arr: T[], from: number, to: number) {
-  const a = [...arr];
-  if (to < 0 || to >= a.length || from < 0 || from >= a.length) return arr;
-  const tmp = a[from];
-  a[from] = a[to];
-  a[to] = tmp;
-  return a;
 }
 function moveToIndex<T>(arr: T[], fromIdx: number, toIdx: number) {
   const a = [...arr];
@@ -455,16 +446,6 @@ export default function ScreenerBuilderApp() {
   }
 
   /** =========================
-   *  Drag & Drop handler
-   *  ========================= */
-  function onDragEnd(result: DropResult) {
-    const { source, destination } = result;
-    if (!destination) return;
-    if (source.index === destination.index) return;
-    setBuilderQs((prev) => moveToIndex(prev, source.index, destination.index));
-  }
-
-  /** =========================
    *  UI
    *  ========================= */
   return (
@@ -592,7 +573,7 @@ export default function ScreenerBuilderApp() {
           </div>
         </section>
 
-        {/* Middle: Builder (drag & drop + quick-jump) */}
+        {/* Middle: Builder (quick-jump reordering) */}
         <section className="col-span-9">
           <div className="bg-white rounded-2xl shadow p-4">
             <div className="flex items-center justify-between">
@@ -609,190 +590,166 @@ export default function ScreenerBuilderApp() {
                 Use <strong>Load Behaviorally Standard Order</strong>, then tweak with <strong>Suggested</strong> or <strong>Library</strong>.
               </div>
             ) : (
-              <DragDropContext onDragEnd={onDragEnd}>
-                <Droppable droppableId="builder-list">
-                  {(dropProvided) => (
-                    <ul ref={dropProvided.innerRef} {...dropProvided.droppableProps} className="mt-4 space-y-2">
-                      {builderQs.map((q, i) => {
-                        const isEditing = editingId === q.id;
-                        return (
-                          <Draggable draggableId={q.id} index={i} key={q.id}>
-                            {(dragProvided) => (
-                              <li
-                                ref={dragProvided.innerRef}
-                                {...dragProvided.draggableProps}
-                                className={`border rounded p-3 ${isEditing ? "ring-2 ring-blue-400" : ""}`}
+              <ul className="mt-4 space-y-2">
+                {builderQs.map((q, i) => {
+                  const isEditing = editingId === q.id;
+                  return (
+                    <li key={q.id} className={`border rounded p-3 ${isEditing ? "ring-2 ring-blue-400" : ""}`}>
+                      <div className="flex items-start gap-3">
+                        <div className="text-slate-500 w-6 pt-1">{i + 1}.</div>
+
+                        <div className="flex-1">
+                          {!isEditing ? (
+                            <>
+                              <div className="text-xs uppercase tracking-wide text-slate-500">{q.section}</div>
+                              <div className="font-medium">{q.text}</div>
+                              <div className="text-xs text-slate-500 mt-1">Type: {q.type}</div>
+
+                              {q.type !== TYPE_OPEN && (q.options?.length ?? 0) > 0 && (
+                                <ul className="list-disc ml-6 text-sm mt-1">
+                                  {(q.options || []).map((o: string, idx: number) => (
+                                    <li key={idx}>{o}</li>
+                                  ))}
+                                </ul>
+                              )}
+
+                              {q.instructions && (
+                                <div className="text-sm mt-2">
+                                  <span className="text-[#C000A3] italic font-medium">
+                                    {(q.instructions || "").toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+
+                              {q.tags?.length ? (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {q.tags.map((t: string, idx: number) => (
+                                    <span key={idx} className="px-2 py-0.5 text-xs rounded-full bg-slate-100 border">
+                                      {t}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </>
+                          ) : (
+                            <>
+                              <label className="block text-xs uppercase text-slate-500">Section</label>
+                              <input className="w-full border rounded px-2 py-1" value={draft?.section || ""} onChange={(e) => updateDraft("section", e.target.value)} />
+
+                              <label className="block text-xs uppercase text-slate-500 mt-2">Question Text</label>
+                              <textarea
+                                className="w-full border rounded px-2 py-1 h-24"
+                                value={draft?.text || ""}
+                                onChange={(e) => updateDraft("text", e.target.value)}
+                                ref={questionTextRef}
+                              />
+
+                              <label className="block text-xs uppercase text-slate-500 mt-2">Type</label>
+                              <select
+                                className="w-full border rounded px-2 py-1"
+                                value={draft?.type || TYPE_SINGLE}
+                                onChange={(e) => updateDraft("type", e.target.value as QType)}
                               >
-                                <div className="flex items-start gap-3">
-                                  {/* Drag handle */}
-                                  <div
-                                    {...dragProvided.dragHandleProps}
-                                    className="cursor-grab select-none text-slate-400 pt-1"
-                                    title="Drag to reorder"
-                                  >
-                                    ⋮⋮
+                                <option value={TYPE_SINGLE}>Single-select</option>
+                                <option value={TYPE_MULTI}>Multi-select</option>
+                                <option value={TYPE_OPEN}>Open-ended</option>
+                              </select>
+
+                              {draft?.type !== TYPE_OPEN && (
+                                <div className="border rounded p-2 mt-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-sm font-medium">Options</div>
+                                    <button className="text-xs px-2 py-1 rounded bg-slate-900 text-white" onClick={addDraftOption}>
+                                      Add
+                                    </button>
                                   </div>
-
-                                  <div className="text-slate-500 w-6 pt-1">{i + 1}.</div>
-
-                                  <div className="flex-1">
-                                    {!isEditing ? (
-                                      <>
-                                        <div className="text-xs uppercase tracking-wide text-slate-500">{q.section}</div>
-                                        <div className="font-medium">{q.text}</div>
-                                        <div className="text-xs text-slate-500 mt-1">Type: {q.type}</div>
-
-                                        {q.type !== TYPE_OPEN && (q.options?.length ?? 0) > 0 && (
-                                          <ul className="list-disc ml-6 text-sm mt-1">
-                                            {(q.options || []).map((o: string, idx: number) => (
-                                              <li key={idx}>{o}</li>
-                                            ))}
-                                          </ul>
-                                        )}
-
-                                        {q.instructions && (
-                                          <div className="text-sm mt-2">
-                                            <span className="text-[#C000A3] italic font-medium">
-                                              {(q.instructions || "").toUpperCase()}
-                                            </span>
-                                          </div>
-                                        )}
-
-                                        {q.tags?.length ? (
-                                          <div className="mt-2 flex flex-wrap gap-1">
-                                            {q.tags.map((t: string, idx: number) => (
-                                              <span key={idx} className="px-2 py-0.5 text-xs rounded-full bg-slate-100 border">
-                                                {t}
-                                              </span>
-                                            ))}
-                                          </div>
-                                        ) : null}
-                                      </>
-                                    ) : (
-                                      <>
-                                        <label className="block text-xs uppercase text-slate-500">Section</label>
-                                        <input className="w-full border rounded px-2 py-1" value={draft?.section || ""} onChange={(e) => updateDraft("section", e.target.value)} />
-
-                                        <label className="block text-xs uppercase text-slate-500 mt-2">Question Text</label>
-                                        <textarea
-                                          className="w-full border rounded px-2 py-1 h-24"
-                                          value={draft?.text || ""}
-                                          onChange={(e) => updateDraft("text", e.target.value)}
-                                          ref={questionTextRef}
-                                        />
-
-                                        <label className="block text-xs uppercase text-slate-500 mt-2">Type</label>
-                                        <select
-                                          className="w-full border rounded px-2 py-1"
-                                          value={draft?.type || TYPE_SINGLE}
-                                          onChange={(e) => updateDraft("type", e.target.value as QType)}
-                                        >
-                                          <option value={TYPE_SINGLE}>Single-select</option>
-                                          <option value={TYPE_MULTI}>Multi-select</option>
-                                          <option value={TYPE_OPEN}>Open-ended</option>
-                                        </select>
-
-                                        {draft?.type !== TYPE_OPEN && (
-                                          <div className="border rounded p-2 mt-2">
-                                            <div className="flex items-center justify-between">
-                                              <div className="text-sm font-medium">Options</div>
-                                              <button className="text-xs px-2 py-1 rounded bg-slate-900 text-white" onClick={addDraftOption}>
-                                                Add
-                                              </button>
-                                            </div>
-                                            <div className="space-y-1 mt-2">
-                                              {(draft?.options || []).map((o: string, idx: number) => (
-                                                <div key={idx} className="flex items-center gap-2">
-                                                  <input className="flex-1 border rounded px-2 py-1" value={o} onChange={(e) => updateDraftOption(idx, e.target.value)} />
-                                                  <button className="text-xs px-2 py-1 rounded bg-white border" onClick={() => removeDraftOption(idx)}>
-                                                    Remove
-                                                  </button>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        )}
-
-                                        <label className="block text-xs uppercase text-slate-500 mt-2">Recruiter Instructions</label>
-                                        <textarea className="w-full border rounded px-2 py-1 h-24" value={draft?.instructions || ""} onChange={(e) => updateDraft("instructions", e.target.value)} />
-
-                                        <label className="block text-xs uppercase text-slate-500 mt-2">Tags (; separated)</label>
-                                        <input
-                                          className="w-full border rounded px-2 py-1"
-                                          value={(draft?.tags || []).join("; ")}
-                                          onChange={(e) => updateDraft("tags", e.target.value.split(/;\s*/).filter(Boolean))}
-                                        />
-                                      </>
-                                    )}
-                                  </div>
-
-                                  <div className="flex flex-col gap-1 items-end">
-                                    {!isEditing ? (
-                                      <>
-                                        <button className="text-xs px-2 py-1 rounded bg-white border" onClick={() => startEdit(q)}>
-                                          Edit
-                                        </button>
-
-                                        {/* Quick-jump: Move to position */}
-                                        <div className="flex items-center gap-1">
-                                          <span className="text-[11px] text-slate-500">Move to</span>
-                                          <select
-                                            className="text-xs border rounded px-1 py-0.5"
-                                            value={i + 1}
-                                            onChange={(e) => setBuilderQs((prev) => moveToIndex(prev, i, Number(e.target.value) - 1))}
-                                          >
-                                            {builderQs.map((_, n) => (
-                                              <option key={n} value={n + 1}>
-                                                {n + 1}
-                                              </option>
-                                            ))}
-                                          </select>
-                                        </div>
-
-                                        {/* Nudges (optional) */}
-                                        <button
-                                          className="text-xs px-2 py-1 rounded bg-white border"
-                                          onClick={() => setBuilderQs((prev) => moveToIndex(prev, i, i - 1))}
-                                          disabled={i === 0}
-                                          title={i === 0 ? "Already at top" : "Move up"}
-                                        >
-                                          ▲
-                                        </button>
-                                        <button
-                                          className="text-xs px-2 py-1 rounded bg-white border"
-                                          onClick={() => setBuilderQs((prev) => moveToIndex(prev, i, i + 1))}
-                                          disabled={i === builderQs.length - 1}
-                                          title={i === builderQs.length - 1 ? "Already at bottom" : "Move down"}
-                                        >
-                                          ▼
-                                        </button>
-
-                                        <button className="text-xs px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200" onClick={() => removeFromBuild(q.id)}>
+                                  <div className="space-y-1 mt-2">
+                                    {(draft?.options || []).map((o: string, idx: number) => (
+                                      <div key={idx} className="flex items-center gap-2">
+                                        <input className="flex-1 border rounded px-2 py-1" value={o} onChange={(e) => updateDraftOption(idx, e.target.value)} />
+                                        <button className="text-xs px-2 py-1 rounded bg-white border" onClick={() => removeDraftOption(idx)}>
                                           Remove
                                         </button>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <button className="text-xs px-2 py-1 rounded bg-emerald-600 text-white" onClick={saveEdit}>
-                                          Save
-                                        </button>
-                                        <button className="text-xs px-2 py-1 rounded bg-white border" onClick={cancelEdit}>
-                                          Cancel
-                                        </button>
-                                      </>
-                                    )}
+                                      </div>
+                                    ))}
                                   </div>
                                 </div>
-                              </li>
-                            )}
-                          </Draggable>
-                        );
-                      })}
-                      {dropProvided.placeholder}
-                    </ul>
-                  )}
-                </Droppable>
-              </DragDropContext>
+                              )}
+
+                              <label className="block text-xs uppercase text-slate-500 mt-2">Recruiter Instructions</label>
+                              <textarea className="w-full border rounded px-2 py-1 h-24" value={draft?.instructions || ""} onChange={(e) => updateDraft("instructions", e.target.value)} />
+
+                              <label className="block text-xs uppercase text-slate-500 mt-2">Tags (; separated)</label>
+                              <input
+                                className="w-full border rounded px-2 py-1"
+                                value={(draft?.tags || []).join("; ")}
+                                onChange={(e) => updateDraft("tags", e.target.value.split(/;\s*/).filter(Boolean))}
+                              />
+                            </>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col gap-1 items-end">
+                          {!isEditing ? (
+                            <>
+                              <button className="text-xs px-2 py-1 rounded bg-white border" onClick={() => startEdit(q)}>
+                                Edit
+                              </button>
+
+                              {/* Quick-jump: Move to position */}
+                              <div className="flex items-center gap-1">
+                                <span className="text-[11px] text-slate-500">Move to</span>
+                                <select
+                                  className="text-xs border rounded px-1 py-0.5"
+                                  value={i + 1}
+                                  onChange={(e) => setBuilderQs((prev) => moveToIndex(prev, i, Number(e.target.value) - 1))}
+                                >
+                                  {builderQs.map((_, n) => (
+                                    <option key={n} value={n + 1}>
+                                      {n + 1}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Nudges */}
+                              <button
+                                className="text-xs px-2 py-1 rounded bg-white border"
+                                onClick={() => setBuilderQs((prev) => moveToIndex(prev, i, i - 1))}
+                                disabled={i === 0}
+                                title={i === 0 ? "Already at top" : "Move up"}
+                              >
+                                ▲
+                              </button>
+                              <button
+                                className="text-xs px-2 py-1 rounded bg-white border"
+                                onClick={() => setBuilderQs((prev) => moveToIndex(prev, i, i + 1))}
+                                disabled={i === builderQs.length - 1}
+                                title={i === builderQs.length - 1 ? "Already at bottom" : "Move down"}
+                              >
+                                ▼
+                              </button>
+
+                              <button className="text-xs px-2 py-1 rounded bg-red-50 text-red-700 border border-red-200" onClick={() => removeFromBuild(q.id)}>
+                                Remove
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button className="text-xs px-2 py-1 rounded bg-emerald-600 text-white" onClick={saveEdit}>
+                                Save
+                              </button>
+                              <button className="text-xs px-2 py-1 rounded bg-white border" onClick={cancelEdit}>
+                                Cancel
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </div>
 
