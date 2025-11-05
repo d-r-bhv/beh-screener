@@ -1,15 +1,16 @@
-// trigger deployment
 import React, { useMemo, useRef, useState } from "react";
 import { buildStandardQuestions } from "./questionLibrary";
 import { exportToWord } from "./exportToWord";
 import { Mode, Question, StudySetup } from "./types";
-import { withCategory } from "./utils/text";
+import { substituteTokens } from "./utils/text";
 
 const modes: { value: Mode; label: string }[] = [
   { value: "online", label: "Online (Virtual)" },
   { value: "inperson_external", label: "In-Person (External Facility)" },
   { value: "inperson_shopperlab", label: "In-Person (ShopperLab)" },
 ];
+
+const MAGENTA = "#C0007A";
 
 export default function ScreenerBuilderApp() {
   const [setup, setSetup] = useState<StudySetup>({
@@ -40,9 +41,10 @@ export default function ScreenerBuilderApp() {
   };
 
   const addCustom = (position: number) => {
+    const ts = Date.now();
     const q: Question = {
-      id: `custom_${Date.now()}`,
-      idLabel: `C_${Date.now()}`,
+      id: `custom_${ts}`,
+      idLabel: `C_${ts}`,
       section: "Custom",
       text: "New question about {{categoryName}}…",
       type: "open",
@@ -276,120 +278,154 @@ export default function ScreenerBuilderApp() {
 
         <div className="bg-white rounded-2xl shadow p-4">
           <ul className="space-y-4">
-            {build.map((q, idx) => (
-              <li
-                key={q.id}
-                ref={(el) => (questionRefs.current[q.id] = el)}
-                className="relative border rounded-xl p-4"
-              >
-                {/* Question number label */}
-                <div className="absolute top-2 left-3 text-xs font-medium text-gray-400">
-                  Q{idx + 1}
-                </div>
+            {build.map((q, idx) => {
+              const idLabel = q.idLabel || "";
+              const text = substituteTokens(q.text, { categoryName: setup.categoryName || "" });
 
-                <div className="flex items-start justify-between gap-4 mt-3">
-                  <div className="flex-1">
-                    {/* Question code field */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <label className="text-xs font-semibold text-gray-500">Code:</label>
+              return (
+                <li
+                  key={q.id}
+                  ref={(el) => (questionRefs.current[q.id] = el)}
+                  className="relative border rounded-xl p-4"
+                  style={{ fontFamily: 'Calibri, Arial, sans-serif' }}
+                >
+                  {/* Question number (UI only) */}
+                  <div className="absolute top-2 left-3 text-xs font-medium text-gray-400">
+                    Q{idx + 1}
+                  </div>
+
+                  <div className="flex items-start justify-between gap-4 mt-3">
+                    <div className="flex-1">
+                      {/* DOC-LIKE PREVIEW (WYSIWYG) */}
+                      <div className="mb-3">
+                        <div className="text-[11pt] leading-[1.35]">
+                          {/* [idLabel] bold, then question */}
+                          <span className="font-bold">
+                            {idLabel ? `[${idLabel}] ` : ""}
+                          </span>
+                          <span>{text}</span>
+                        </div>
+
+                        {/* Options list */}
+                        {q.options?.length ? (
+                          <div className="mt-1 pl-6 text-[11pt] leading-[1.35]">
+                            {q.options.map((opt, i) => {
+                              const letter = String.fromCharCode(97 + i) + ".";
+                              return (
+                                <div key={i} className="mt-[2px]">
+                                  <span>{letter}&nbsp;</span>
+                                  <span>{substituteTokens(opt, { categoryName: setup.categoryName || "" })}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : null}
+
+                        {/* Recruiter instructions */}
+                        {q.instructions ? (
+                          <div className="mt-2 text-[10pt] italic" style={{ color: MAGENTA }}>
+                            {substituteTokens(q.instructions, { categoryName: setup.categoryName || "" })}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {/* EDIT FIELDS */}
+                      <div className="text-sm text-gray-500 mb-1">Section</div>
                       <input
-                        className={`text-xs border rounded p-1 w-32 ${
-                          q.idLabel?.startsWith("C_")
-                            ? "bg-white"
-                            : "bg-gray-100 cursor-not-allowed"
-                        }`}
-                        value={q.idLabel || ""}
-                        onChange={(e) =>
-                          q.idLabel?.startsWith("C_") &&
-                          updateQ(q.id, { idLabel: e.target.value })
-                        }
-                        readOnly={!q.idLabel?.startsWith("C_")}
+                        className="w-full border rounded p-2 mb-2"
+                        value={q.section}
+                        onChange={(e) => updateQ(q.id, { section: e.target.value })}
                       />
-                    </div>
 
-                    <div className="text-sm text-gray-500 mb-1">{q.section}</div>
-
-                    <input
-                      className="w-full text-base font-semibold border rounded p-2"
-                      value={q.text}
-                      onChange={(e) => updateQ(q.id, { text: e.target.value })}
-                    />
-
-                    {/* Options */}
-                    {q.options && q.options.length > 0 && (
-                      <div className="mt-2">
-                        <div className="text-sm text-gray-500 mb-1">Options</div>
-                        {q.options.map((opt, i) => (
-                          <input
-                            key={i}
-                            className="w-full border rounded p-2 mb-1"
-                            value={opt}
-                            onChange={(e) => {
-                              const next = [...(q.options || [])];
-                              next[i] = e.target.value;
-                              updateQ(q.id, { options: next });
-                            }}
-                          />
-                        ))}
+                      {/* Code (read-only for standards, editable for customs) */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <label className="text-xs font-semibold text-gray-500">Code:</label>
+                        <input
+                          className={`text-xs border rounded p-1 w-40 ${
+                            idLabel.startsWith("C_") ? "bg-white" : "bg-gray-100 cursor-not-allowed"
+                          }`}
+                          value={idLabel}
+                          onChange={(e) =>
+                            idLabel.startsWith("C_") &&
+                            updateQ(q.id, { idLabel: e.target.value })
+                          }
+                          readOnly={!idLabel.startsWith("C_")}
+                        />
                       </div>
-                    )}
 
-                    {/* Instructions */}
-                    <div className="mt-2">
-                      <div className="text-sm text-gray-500 mb-1">
-                        Recruiter Instructions
-                      </div>
-                      <textarea
+                      <div className="text-sm text-gray-500 mb-1">Question wording</div>
+                      <input
                         className="w-full border rounded p-2"
-                        value={q.instructions || ""}
-                        onChange={(e) => updateQ(q.id, { instructions: e.target.value })}
+                        value={q.text}
+                        onChange={(e) => updateQ(q.id, { text: e.target.value })}
                       />
-                    </div>
 
-                    {/* Preview */}
-                    <div className="mt-3 text-xs text-gray-600">
-                      <div className="font-semibold">Preview with Category:</div>
-                      <div className="mt-1">
-                        {withCategory(q.text, setup.categoryName || "").trim() || "—"}
+                      {/* Options edit */}
+                      {q.options && q.options.length > 0 && (
+                        <div className="mt-2">
+                          <div className="text-sm text-gray-500 mb-1">Options</div>
+                          {q.options.map((opt, i) => (
+                            <input
+                              key={i}
+                              className="w-full border rounded p-2 mb-1"
+                              value={opt}
+                              onChange={(e) => {
+                                const next = [...(q.options || [])];
+                                next[i] = e.target.value;
+                                updateQ(q.id, { options: next });
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Instructions edit */}
+                      <div className="mt-2">
+                        <div className="text-sm text-gray-500 mb-1">Recruiter Instructions</div>
+                        <textarea
+                          className="w-full border rounded p-2"
+                          value={q.instructions || ""}
+                          onChange={(e) => updateQ(q.id, { instructions: e.target.value })}
+                        />
                       </div>
                     </div>
-                  </div>
 
-                  {/* Right-hand controls */}
-                  <div className="flex flex-col items-end gap-2">
-                    <button
-                      className="px-3 py-1 rounded bg-gray-100"
-                      onClick={() => move(q.id, -1)}
-                    >
-                      ▲
-                    </button>
-                    <button
-                      className="px-3 py-1 rounded bg-gray-100"
-                      onClick={() => move(q.id, 1)}
-                    >
-                      ▼
-                    </button>
-                    <select
-                      className="border rounded p-1 text-sm"
-                      value={idx}
-                      onChange={(e) => moveToIndex(q.id, Number(e.target.value))}
-                    >
-                      {build.map((_, i) => (
-                        <option key={i} value={i}>
-                          Pos {i + 1}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      className="px-3 py-1 rounded bg-red-600 text-white"
-                      onClick={() => removeQ(q.id)}
-                    >
-                      Remove
-                    </button>
+                    {/* Right-hand controls */}
+                    <div className="flex flex-col items-end gap-2">
+                      <button
+                        className="px-3 py-1 rounded bg-gray-100"
+                        onClick={() => move(q.id, -1)}
+                      >
+                        ▲
+                      </button>
+                      <button
+                        className="px-3 py-1 rounded bg-gray-100"
+                        onClick={() => move(q.id, 1)}
+                      >
+                        ▼
+                      </button>
+                      <select
+                        className="border rounded p-1 text-sm"
+                        value={idx}
+                        onChange={(e) => moveToIndex(q.id, Number(e.target.value))}
+                      >
+                        {build.map((_, i) => (
+                          <option key={i} value={i}>
+                            Pos {i + 1}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        className="px-3 py-1 rounded bg-red-600 text-white"
+                        onClick={() => removeQ(q.id)}
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>
