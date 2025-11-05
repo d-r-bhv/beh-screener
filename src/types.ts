@@ -1,7 +1,4 @@
-export type Mode =
-  | "online"
-  | "inperson_external"
-  | "inperson_shopperlab";
+export type Mode = "online" | "inperson_external" | "inperson_shopperlab";
 
 export interface StudySetup {
   mode: Mode;
@@ -14,13 +11,20 @@ export interface StudySetup {
 
 export type QuestionType = "single" | "multi" | "open";
 
+export interface OptionItem {
+  text: string;
+  qualifies?: boolean;   // shows magenta * in UI/export
+  terminate?: boolean;   // selecting this ends screener
+  skipToIdLabel?: string; // jump to this code if selected
+}
+
 export interface Question {
-  id: string;              // internal unique key (for React/state)
-  idLabel?: string;        // human-readable screener code, e.g. S_Gender, C_Custom1
-  section: string;
+  id: string;           // internal key
+  idLabel?: string;     // e.g., S_Gender, C_MyCode
+  section: string;      // kept for grouping, not shown in editor
   text: string;
   type: QuestionType;
-  options?: string[];
+  options?: Array<OptionItem> | string[]; // backward compatible
   instructions?: string;
   tags?: string[];
   required?: boolean;
