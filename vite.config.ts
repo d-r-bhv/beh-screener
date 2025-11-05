@@ -1,8 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// IMPORTANT: Replace REPO_NAME with your repository name (case-sensitive)
+// IMPORTANT for GitHub Pages: base must be your repo name
 export default defineConfig({
   plugins: [react()],
-  base: "/beh-screener/",
+  base: "/beh-screener/"
 });
