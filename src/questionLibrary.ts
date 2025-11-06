@@ -1,9 +1,12 @@
-import { Mode, Question } from "./types";
+import { Mode, OptionItem, Question } from "./types";
 
-// Helper (export styling applied in exporter)
+// Helper for wrapping plain string lists
+const o = (arr: string[]): OptionItem[] => arr.map((text) => ({ text }));
+
+// For recruiter instruction styling
 const MAGENTA_INSTR = (s: string) => s;
 
-// ----- Universal Standard Questions -----
+// ---------- Universal Standard Questions ----------
 export const universalStandardQuestions: Question[] = [
   {
     id: "intro_read",
@@ -22,7 +25,7 @@ export const universalStandardQuestions: Question[] = [
     section: "Demographics",
     text: "Record gender.",
     type: "single",
-    options: [
+    options: o([
       "Male",
       "Female",
       "Non-binary",
@@ -30,7 +33,7 @@ export const universalStandardQuestions: Question[] = [
       "Gender fluid",
       "Prefer to self-identify",
       "Prefer not to answer",
-    ],
+    ]),
     tags: ["demographics", "gender", "quota", "universal"],
     required: true,
   },
@@ -38,9 +41,10 @@ export const universalStandardQuestions: Question[] = [
     id: "research_participation",
     idLabel: "S_PastPar",
     section: "Disqualification",
-    text: "Have you ever participated in a market research discussion group or individual interview?",
+    text:
+      "Have you ever participated in a market research discussion group or individual interview?",
     type: "single",
-    options: ["Yes", "No"],
+    options: o(["Yes", "No"]),
     instructions: MAGENTA_INSTR(
       "IF YES: How long ago? (Within past 3 months = TERMINATE; >4 sessions in past year = TERMINATE)"
     ),
@@ -54,7 +58,7 @@ export const universalStandardQuestions: Question[] = [
     text:
       "Do you or does anyone in your family currently work for or have ever worked for any of the following? (READ LIST)",
     type: "multi",
-    options: [
+    options: o([
       "Market research firm",
       "A marketing or research department of a company (including in-store sampling firms/promotional agencies, etc.)",
       "Advertising agency",
@@ -63,7 +67,7 @@ export const universalStandardQuestions: Question[] = [
       "A graphic or packaging design firm",
       "Art or design-related fields such as art teachers, interior designers, architects, commercial photography, printing, etc.",
       "A company involved in the manufacturing, distribution, or sale of any products in this category",
-    ],
+    ]),
     instructions: MAGENTA_INSTR("IF YES TO ANY: TERMINATE."),
     tags: ["dq", "industry", "universal"],
     required: true,
@@ -83,7 +87,7 @@ export const universalStandardQuestions: Question[] = [
     section: "Household",
     text: "How much of the household’s grocery shopping do you, yourself, do?",
     type: "single",
-    options: ["All of it", "Half of it or more", "Less than half of it", "None of it"],
+    options: o(["All of it", "Half of it or more", "Less than half of it", "None of it"]),
     instructions: MAGENTA_INSTR("IF 'Less than half' or 'None': TERMINATE."),
     tags: ["household", "shopping", "universal"],
     required: true,
@@ -92,9 +96,14 @@ export const universalStandardQuestions: Question[] = [
     id: "brand_decider",
     idLabel: "S_BrandDecider",
     section: "Household",
-    text: "Which is most accurate about who decides what brands of {{categoryName}} to buy in your household?",
+    text:
+      "Which is most accurate about who decides what brands of {{categoryName}} to buy in your household?",
     type: "single",
-    options: ["I am the primary decision maker", "I am a joint decision maker", "I am not involved"],
+    options: o([
+      "I am the primary decision maker",
+      "I am a joint decision maker",
+      "I am not involved",
+    ]),
     instructions: MAGENTA_INSTR("IF 'Not involved': TERMINATE."),
     tags: ["household", "decision", "universal"],
   },
@@ -105,7 +114,7 @@ export const universalStandardQuestions: Question[] = [
     text:
       "Which, if any, of the following types of {{categoryName}} have you purchased and personally used in the past [timeframe]? (READ LIST.)",
     type: "multi",
-    options: ["[Study-specific category list]"],
+    options: o(["[Study-specific category list]"]),
     instructions: MAGENTA_INSTR("IF 'None of the above': TERMINATE."),
     tags: ["category", "usage", "universal"],
   },
@@ -137,7 +146,7 @@ export const universalStandardQuestions: Question[] = [
     section: "Demographics",
     text: "What is your current marital status?",
     type: "single",
-    options: ["Married or living with someone", "Single", "Divorced or separated", "Widowed"],
+    options: o(["Married or living with someone", "Single", "Divorced or separated", "Widowed"]),
     tags: ["demographics", "marital", "universal"],
   },
   {
@@ -146,7 +155,7 @@ export const universalStandardQuestions: Question[] = [
     section: "Household",
     text: "Do you have any children under the age of 18 currently living in your household?",
     type: "single",
-    options: ["Yes", "No"],
+    options: o(["Yes", "No"]),
     tags: ["household", "children", "universal"],
   },
   {
@@ -155,14 +164,14 @@ export const universalStandardQuestions: Question[] = [
     section: "Demographics",
     text: "Which of the following best describes your ethnicity?",
     type: "single",
-    options: [
+    options: o([
       "Caucasian/White",
       "African American / Black",
       "Asian/Pacific Islander",
       "Hispanic/Latino",
       "Other",
       "Prefer not to answer",
-    ],
+    ]),
     tags: ["demographics", "ethnicity", "quota", "universal"],
   },
   {
@@ -171,13 +180,13 @@ export const universalStandardQuestions: Question[] = [
     section: "Demographics",
     text: "What is the last level of education that you completed?",
     type: "single",
-    options: [
+    options: o([
       "Some High School or less",
       "Completed High School",
       "Some College or Technical School",
       "Completed College/Technical School",
       "Some Post-Graduate Study or more",
-    ],
+    ]),
     instructions: MAGENTA_INSTR("Often: TERMINATE if 'Some High School or less' unless study specifies otherwise."),
     tags: ["demographics", "education", "universal"],
   },
@@ -187,14 +196,14 @@ export const universalStandardQuestions: Question[] = [
     section: "Demographics",
     text: "What is your current employment status?",
     type: "multi",
-    options: [
+    options: o([
       "Employed Full-Time",
       "Employed Part-Time",
       "Full-Time Homemaker",
       "Part or Full-Time Student",
       "Retired",
       "Currently Seeking Employment",
-    ],
+    ]),
     instructions: MAGENTA_INSTR("Often: TERMINATE if Currently Seeking Employment."),
     tags: ["demographics", "employment", "universal"],
   },
@@ -216,14 +225,14 @@ export const universalStandardQuestions: Question[] = [
     section: "Demographics",
     text: "What is your total annual household income?",
     type: "single",
-    options: [
+    options: o([
       "Less than $30,000",
       "$30,000 - $44,999",
       "$45,000 - $59,999",
       "$60,000 - $74,999",
       "$75,000 - $99,999",
       "$100,000 or more",
-    ],
+    ]),
     instructions: MAGENTA_INSTR("Threshold varies by study; apply study-specific termination."),
     tags: ["demographics", "income", "quota", "universal"],
   },
@@ -234,7 +243,7 @@ export const universalStandardQuestions: Question[] = [
     text:
       "During the discussion you will be asked to visually evaluate some concepts. Are you colorblind or do you have any eyesight or reading problems that would prevent you from being able to do this?",
     type: "single",
-    options: ["Yes", "No"],
+    options: o(["Yes", "No"]),
     instructions: MAGENTA_INSTR("IF YES: TERMINATE."),
     tags: ["logistics", "vision", "universal"],
   },
@@ -245,7 +254,7 @@ export const universalStandardQuestions: Question[] = [
     text:
       "IF QUALIFIED: You are eligible to participate in a market research discussion on consumer products. This is not an attempt to sell you anything. The discussion will last about [X] minutes and for your time you will receive $______. May we count on your attendance?",
     type: "single",
-    options: ["Yes", "No"],
+    options: o(["Yes", "No"]),
     tags: ["invitation", "universal"],
   },
   {
@@ -260,7 +269,7 @@ export const universalStandardQuestions: Question[] = [
   },
 ];
 
-// ----- Conditional Blocks -----
+// ---------- ShopperLab MET Block ----------
 export const shopperLabMETBlock: Question[] = [
   {
     id: "met_ok",
@@ -269,7 +278,7 @@ export const shopperLabMETBlock: Question[] = [
     text:
       "During the interview you will be asked to wear a set of non-prescription eyeglasses (mobile eye-tracking). Is this OK?",
     type: "single",
-    options: ["Yes", "No"],
+    options: o(["Yes", "No"]),
     instructions: MAGENTA_INSTR("IF NO: TERMINATE."),
     tags: ["shopperlab", "met", "dq"],
     required: true,
@@ -281,12 +290,12 @@ export const shopperLabMETBlock: Question[] = [
     text:
       "Which of the following do you ever wear while shopping in a grocery store? (READ LIST.)",
     type: "single",
-    options: [
+    options: o([
       "Only glasses or reading glasses",
       "Only contact lenses",
       "Either glasses or contact lenses",
       "Neither glasses nor contact lenses",
-    ],
+    ]),
     instructions: MAGENTA_INSTR(
       "IF 'Only glasses/reading glasses': TERMINATE. If 'Only contacts' or 'Either': ask respondent to wear NON-COLORED contacts on study day."
     ),
@@ -298,7 +307,7 @@ export const shopperLabMETBlock: Question[] = [
     section: "ShopperLab / MET",
     text: "Do you have issues seeing objects from 4 feet away?",
     type: "single",
-    options: ["Yes", "No"],
+    options: o(["Yes", "No"]),
     instructions: MAGENTA_INSTR("IF YES: TERMINATE."),
     tags: ["shopperlab", "met", "dq"],
   },
@@ -309,7 +318,7 @@ export const shopperLabMETBlock: Question[] = [
     text:
       "Do you have any eyesight problems (e.g., current/reoccurring eye injuries, colorblindness, pink eye, astigmatism, strabismus, etc.)?",
     type: "single",
-    options: ["Yes", "No"],
+    options: o(["Yes", "No"]),
     instructions: MAGENTA_INSTR("IF YES: TERMINATE."),
     tags: ["shopperlab", "met", "dq"],
   },
@@ -320,7 +329,7 @@ export const shopperLabMETBlock: Question[] = [
     text:
       "Do you currently use a wheelchair, motorized scooter, walker, or any other type of walking assistance device while shopping?",
     type: "single",
-    options: ["Yes", "No"],
+    options: o(["Yes", "No"]),
     instructions: MAGENTA_INSTR("IF YES: TERMINATE."),
     tags: ["shopperlab", "met", "dq"],
   },
@@ -330,7 +339,7 @@ export const shopperLabMETBlock: Question[] = [
     section: "ShopperLab / MET",
     text: "Are you allergic to rubber?",
     type: "single",
-    options: ["Yes", "No"],
+    options: o(["Yes", "No"]),
     instructions: MAGENTA_INSTR("IF YES: TERMINATE."),
     tags: ["shopperlab", "met", "dq"],
   },
@@ -346,6 +355,7 @@ export const shopperLabMETBlock: Question[] = [
   },
 ];
 
+// ---------- Online Tech Check ----------
 export const onlineTechCheckBlock: Question[] = [
   {
     id: "tech_devices",
@@ -361,14 +371,13 @@ export const onlineTechCheckBlock: Question[] = [
     id: "tech_comfort",
     idLabel: "S_TechComfort",
     section: "Online / Tech",
-    text:
-      "Which best describes your comfort using a computer or laptop?",
+    text: "Which best describes your comfort using a computer or laptop?",
     type: "single",
-    options: [
+    options: o([
       "Very comfortable — typically use one daily",
       "Somewhat comfortable — use a few times a week",
       "Not comfortable — rarely use one",
-    ],
+    ]),
     instructions: MAGENTA_INSTR("TERMINATE if not 'Very comfortable'."),
     tags: ["online", "tech", "dq"],
   },
@@ -384,6 +393,7 @@ export const onlineTechCheckBlock: Question[] = [
   },
 ];
 
+// ---------- In-Person External Facility ----------
 export const externalFacilityBlock: Question[] = [
   {
     id: "arrival_reminder",
@@ -397,17 +407,11 @@ export const externalFacilityBlock: Question[] = [
   },
 ];
 
-// Factory to assemble the full standard list based on setup
+// ---------- Builder function ----------
 export function buildStandardQuestions(mode: Mode): Question[] {
   const base = [...universalStandardQuestions];
-
-  if (mode === "inperson_shopperlab") {
-    base.splice(1, 0, ...shopperLabMETBlock);
-  } else if (mode === "online") {
-    base.splice(1, 0, ...onlineTechCheckBlock);
-  } else if (mode === "inperson_external") {
-    base.splice(1, 0, ...externalFacilityBlock);
-  }
-
+  if (mode === "inperson_shopperlab") base.splice(1, 0, ...shopperLabMETBlock);
+  else if (mode === "online") base.splice(1, 0, ...onlineTechCheckBlock);
+  else if (mode === "inperson_external") base.splice(1, 0, ...externalFacilityBlock);
   return base;
 }
